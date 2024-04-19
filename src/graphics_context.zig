@@ -118,6 +118,10 @@ pub const GraphicsContext = struct {
         defer instance_extensions.deinit();
         try instance_extensions.appendSlice(glfw_exts);
 
+        if (builtin.os.tag == .macos) {
+            try instance_extensions.append("VK_KHR_portability_enumeration");
+        }
+
         var count: u32 = undefined;
         _ = try self.vkb.enumerateInstanceExtensionProperties(null, &count, null);
 
@@ -146,9 +150,11 @@ pub const GraphicsContext = struct {
         };
 
         self.instance = try self.vkb.createInstance(&vk.InstanceCreateInfo{
-            .flags = if (builtin.os.tag == .macos) .{
-                .enumerate_portability_bit_khr = true,
-            } else .{},
+            // set flag VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR on macOS
+            .flags = if (builtin.os.tag == .macos)
+                vk.InstanceCreateFlags.fromInt(1)
+            else
+                .{},
             .p_application_info = &app_info,
             .enabled_layer_count = 0,
             .pp_enabled_layer_names = undefined,
